@@ -2,18 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { usePainStore } from '@/store/painStore';
-import { generateTestsForSymptoms } from '@/lib/gemini';
-import { MovementTestResult, AIGeneratedTest } from '@/lib/types';
+import { MovementTestResult } from '@/lib/types';
 import AITestCard from './AITestCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Activity, Loader2, Sparkles, RefreshCw } from 'lucide-react';
 
-interface MovementTestListProps {
-  apiKey?: string;
-}
-
-export default function MovementTestList({ apiKey }: MovementTestListProps) {
+export default function MovementTestList() {
   const { currentSession, addMovementTestResult, setSuggestedTests } = usePainStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,13 +23,27 @@ export default function MovementTestList({ apiKey }: MovementTestListProps) {
   }, [completedTests]);
 
   const handleGenerateTests = async () => {
-    if (!apiKey || painMarkers.length === 0) return;
+    if (painMarkers.length === 0) return;
 
     setIsGenerating(true);
     setError(null);
 
     try {
-      const tests = await generateTestsForSymptoms(painMarkers, apiKey, initialStory);
+      const response = await fetch('/api/generate-tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          painMarkers,
+          initialStory
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate tests');
+      }
+
+      const tests = await response.json();
       setSuggestedTests(tests);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate tests');
@@ -54,18 +63,6 @@ export default function MovementTestList({ apiKey }: MovementTestListProps) {
         <CardContent className="py-8 text-center text-gray-500">
           <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>Mark pain points on the body first to get personalized movement tests.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // No API key
-  if (!apiKey) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center text-gray-500">
-          <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Configure your Gemini API key in settings to generate personalized tests.</p>
         </CardContent>
       </Card>
     );

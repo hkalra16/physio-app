@@ -12,30 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { User, Activity, Brain, History, Settings, MessageSquare } from 'lucide-react';
+import { User, Activity, Brain, History, MessageSquare } from 'lucide-react';
 
 export default function AssessmentPage() {
   const { currentSession, startNewSession, setInitialStory, sessions } = usePainStore();
   const [activeTab, setActiveTab] = useState('pain');
-  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
-  const [apiKey, setApiKey] = useState('');
   const [showWelcome, setShowWelcome] = useState(true);
-
-  // Load API key from localStorage
-  useEffect(() => {
-    const savedKey = localStorage.getItem('gemini-api-key');
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
-  }, []);
 
   // Start a new session if none exists (after hydration)
   useEffect(() => {
@@ -54,11 +36,6 @@ export default function AssessmentPage() {
   const handleWelcomeComplete = (story: string) => {
     setInitialStory(story);
     setShowWelcome(false);
-  };
-
-  const handleSaveApiKey = () => {
-    localStorage.setItem('gemini-api-key', apiKey);
-    setShowApiKeyDialog(false);
   };
 
   const painMarkerCount = currentSession?.painMarkers.length || 0;
@@ -90,9 +67,6 @@ export default function AssessmentPage() {
                 {sessions.length} past sessions
               </Badge>
             )}
-            <Button variant="ghost" size="icon" onClick={() => setShowApiKeyDialog(true)}>
-              <Settings className="h-5 w-5" />
-            </Button>
           </div>
         </div>
       </header>
@@ -212,7 +186,7 @@ export default function AssessmentPage() {
           {/* Movement Tests Tab */}
           <TabsContent value="tests">
             <div className="max-w-2xl mx-auto">
-              <MovementTestList apiKey={apiKey} />
+              <MovementTestList />
               {testCount > 0 && (
                 <Button
                   className="w-full mt-4"
@@ -227,22 +201,7 @@ export default function AssessmentPage() {
           {/* Analysis Tab */}
           <TabsContent value="analysis">
             <div className="max-w-2xl mx-auto">
-              {!apiKey ? (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <Brain className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-600 mb-4">
-                      Please configure your Gemini API key to enable AI analysis.
-                    </p>
-                    <Button onClick={() => setShowApiKeyDialog(true)}>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Configure API Key
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <AnalysisPanel apiKey={apiKey} />
-              )}
+              <AnalysisPanel />
             </div>
           </TabsContent>
         </Tabs>
@@ -250,34 +209,6 @@ export default function AssessmentPage() {
 
       {/* Pain Annotation Panel (Sheet) */}
       <PainAnnotationPanel />
-
-      {/* API Key Dialog */}
-      <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Gemini API Key</DialogTitle>
-            <DialogDescription>
-              Enter your Google Gemini API key to enable AI-powered analysis.
-              You can get one from the Google AI Studio.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your API key..."
-              className="w-full px-3 py-2 border rounded-md"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowApiKeyDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveApiKey}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { usePainStore } from '@/store/painStore';
-import { analyzeWithGemini, askFollowUpQuestion, formatAnalysisForDisplay } from '@/lib/gemini';
+import { formatAnalysisForDisplay } from '@/lib/gemini';
 import { GeminiPhysioResponse, PainMarker, MovementTestResult } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,17 +22,13 @@ import {
   X
 } from 'lucide-react';
 
-interface AnalysisPanelProps {
-  apiKey: string;
-}
-
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   imageUrls?: string[];  // For displaying uploaded images in chat
 }
 
-export default function AnalysisPanel({ apiKey }: AnalysisPanelProps) {
+export default function AnalysisPanel() {
   const { currentSession, setGeminiAnalysis } = usePainStore();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,13 +47,22 @@ export default function AnalysisPanel({ apiKey }: AnalysisPanelProps) {
     setError(null);
 
     try {
-      const result = await analyzeWithGemini(
-        painMarkers,
-        movementTests,
-        undefined,
-        apiKey,
-        initialStory
-      );
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          painMarkers,
+          movementTestResults: movementTests,
+          initialStory
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Analysis failed');
+      }
+
+      const result = await response.json();
       setGeminiAnalysis(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed');
@@ -124,7 +129,6 @@ export default function AnalysisPanel({ apiKey }: AnalysisPanelProps) {
           analysis={analysis}
           onReanalyze={handleAnalyze}
           isReanalyzing={isAnalyzing}
-          apiKey={apiKey}
           painMarkers={painMarkers}
           movementTests={movementTests}
         />
@@ -137,14 +141,12 @@ function AnalysisResults({
   analysis,
   onReanalyze,
   isReanalyzing,
-  apiKey,
   painMarkers,
   movementTests
 }: {
   analysis: GeminiPhysioResponse;
   onReanalyze: () => void;
   isReanalyzing: boolean;
-  apiKey: string;
   painMarkers: PainMarker[];
   movementTests: MovementTestResult[];
 }) {
@@ -152,7 +154,6 @@ function AnalysisResults({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [followUpQuestion, setFollowUpQuestion] = useState('');
   const [isAskingFollowUp, setIsAskingFollowUp] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImages, setPendingImages] = useState<{
@@ -230,15 +231,24 @@ function AnalysisResults({
     setIsAskingFollowUp(true);
 
     try {
-      const response = await askFollowUpQuestion(
-        question,
-        analysis,
-        painMarkers,
-        movementTests,
-        apiKey,
-        images.length > 0 ? images : undefined
-      );
-      setChatMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      const response = await fetch('/api/follow-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question,
+          previousAnalysis: analysis,
+          painMarkers,
+          movementTestResults: movementTests,
+          images: images.length > 0 ? images : undefined
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await response.json();
+      setChatMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch (err) {
       setChatMessages(prev => [
         ...prev,
