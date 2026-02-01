@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { usePainStore } from '@/store/painStore';
-import BodySvg from './BodySvg';
 import PainMarkerIcon from './PainMarkerIcon';
+import MuscleBodyVisualizer from './MuscleBodyVisualizer';
 import { Button } from '@/components/ui/button';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Layers } from 'lucide-react';
+
+// Toggle between new muscle diagram and legacy SVG
+const USE_MUSCLE_DIAGRAM = true;
 
 export default function BodyVisualizer() {
   const [isHydrated, setIsHydrated] = useState(false);
+  const [useLegacy, setUseLegacy] = useState(false);
 
   // Subscribe to the store with individual selectors for better reactivity
   const currentView = usePainStore((state) => state.currentView);
@@ -25,6 +29,29 @@ export default function BodyVisualizer() {
     setIsHydrated(true);
   }, []);
 
+  // Use new muscle diagram by default
+  if (USE_MUSCLE_DIAGRAM && !useLegacy) {
+    return (
+      <div className="relative">
+        <MuscleBodyVisualizer />
+        {/* Toggle to legacy view (hidden by default, can enable for debugging) */}
+        {process.env.NODE_ENV === 'development' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-0 right-0 text-xs opacity-50 hover:opacity-100"
+            onClick={() => setUseLegacy(true)}
+            title="Switch to legacy SVG view"
+          >
+            <Layers className="h-3 w-3 mr-1" />
+            Legacy
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Legacy SVG implementation below
   // Get markers for current view - ensure we re-render when session changes
   const markers = isHydrated && currentSession?.painMarkers
     ? currentSession.painMarkers.filter(m => m.bodyView === currentView)
@@ -51,7 +78,21 @@ export default function BodyVisualizer() {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-4 relative">
+      {/* Toggle back to new view */}
+      {useLegacy && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-0 right-0 text-xs"
+          onClick={() => setUseLegacy(false)}
+          title="Switch to muscle diagram"
+        >
+          <Layers className="h-3 w-3 mr-1" />
+          Muscle View
+        </Button>
+      )}
+
       {/* View Toggle */}
       <div className="flex gap-2">
         <Button

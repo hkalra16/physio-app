@@ -136,7 +136,7 @@ export default function PainAnnotationPanel() {
 
   return (
     <Sheet open={isAnnotating} onOpenChange={(open) => !open && handleClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto px-6 py-6">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             {editingMarkerId ? 'Edit Pain Point' : 'Mark Pain'}

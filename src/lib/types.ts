@@ -1,3 +1,29 @@
+// Muscle Slug Types (from react-muscle-highlighter)
+export type MuscleSlug =
+  | 'abs'
+  | 'adductors'
+  | 'ankles'
+  | 'biceps'
+  | 'calves'
+  | 'chest'
+  | 'deltoids'
+  | 'feet'
+  | 'forearm'
+  | 'gluteal'
+  | 'hamstring'
+  | 'hands'
+  | 'hair'
+  | 'head'
+  | 'knees'
+  | 'lower-back'
+  | 'neck'
+  | 'obliques'
+  | 'quadriceps'
+  | 'tibialis'
+  | 'trapezius'
+  | 'triceps'
+  | 'upper-back';
+
 // Pain Marker Types
 export type PainType = 'point' | 'radiating' | 'diffuse' | 'referred';
 
